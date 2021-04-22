@@ -1,6 +1,6 @@
 {
     "experiment_name": "experiment_aae",
-    "results_root": "/media/graphicslab/BigData/zavou/ANNFASS_CODE/3d-AAE/experiment-logs",
+    "results_root": "/mnt/nfs/work1/kalo/maverkiou/zavou/3daae-results",
     "clean_results_dir": false,
 
     "cuda": true,
@@ -12,7 +12,7 @@
     ],
 
     "dataset": "shapenet",
-    "data_dir": "/media/graphicslab/BigData/zavou/ANNFASS_CODE/3d-AAE/data",
+    "data_dir": "/mnt/nfs/work1/kalo/maverkiou/zavou/3daae-data",
     "classes": ["02773838", "02828884", "02924116"],
     "shuffle": true,
     "transforms": ["rotate"],
@@ -20,7 +20,7 @@
     "n_points": 2048,
 
     "max_epochs": 2000,
-    "batch_size": 16,
+    "batch_size": 32,
     "gp_lambda": 10,
     "reconstruction_coef": 0.05,
     "z_size": 2048,
@@ -34,7 +34,7 @@
     "normal_std": 0.2,
 
     "seed": 2018,
-    "save_frequency": 5,
+    "save_frequency": 250,
     "epsilon": 0.001,
 
     "arch": "aae",

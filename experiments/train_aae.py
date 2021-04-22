@@ -45,7 +45,8 @@ def main(config):
     setup_logging(results_dir)
     log = logging.getLogger(__name__)
 
-    device = cuda_setup(config['cuda'], config['gpu'])
+    # device = cuda_setup(config['cuda'], config['gpu'])
+    device = cuda_setup(config['cuda'])
     log.debug(f'Device variable: {device}')
     if device.type == 'cuda':
         log.debug(f'Current CUDA device: {torch.cuda.current_device()}')
@@ -58,21 +59,27 @@ def main(config):
     dataset_name = config['dataset'].lower()
     if dataset_name == 'shapenet':
         from datasets.shapenet import ShapeNetDataset
-        dataset = ShapeNetDataset(root_dir=config['data_dir'],
+        train_dataset = ShapeNetDataset(root_dir=config['data_dir'],
                                   classes=config['classes'])
+        val_dataset = ShapeNetDataset(root_dir=config['data_dir'],
+                                  classes=config['classes'], split='valid')
     elif dataset_name == 'faust':
         from datasets.dfaust import DFaustDataset
-        dataset = DFaustDataset(root_dir=config['data_dir'],
+        train_dataset = DFaustDataset(root_dir=config['data_dir'],
                                 classes=config['classes'])
     else:
         raise ValueError(f'Invalid dataset name. Expected `shapenet` or '
                          f'`faust`. Got: `{dataset_name}`')
     log.debug("Selected {} classes. Loaded {} samples.".format(
         'all' if not config['classes'] else ','.join(config['classes']),
-        len(dataset)))
+        len(train_dataset)))
 
-    points_dataloader = DataLoader(dataset, batch_size=config['batch_size'],
+    points_train_dataloader = DataLoader(train_dataset, batch_size=config['batch_size'],
                                    shuffle=config['shuffle'],
+                                   num_workers=config['num_workers'],
+                                   drop_last=True, pin_memory=True)
+    points_val_dataloader = DataLoader(val_dataset, batch_size=config['batch_size'],
+                                   shuffle=False,
                                    num_workers=config['num_workers'],
                                    drop_last=True, pin_memory=True)
 
@@ -101,7 +108,7 @@ def main(config):
     # Float Tensors
     #
     fixed_noise = torch.FloatTensor(config['batch_size'], config['z_size'], 1)
-    fixed_noise.normal_(mean=config['normal_mu'], std=config['normal_std'])
+    fixed_noise.normal_(mean=config['normal_mu'], std=config['normal_std'])  # so that in every epoch we use the same to evaluate ... is this really needed?
     noise = torch.FloatTensor(config['batch_size'], config['z_size'])
 
     fixed_noise = fixed_noise.to(device)
@@ -141,7 +148,7 @@ def main(config):
 
         total_loss_d = 0.0
         total_loss_eg = 0.0
-        for i, point_data in enumerate(points_dataloader, 1):
+        for i, point_data in enumerate(points_train_dataloader, 1):
             log.debug('-' * 20)
 
             X, _ = point_data
@@ -151,11 +158,11 @@ def main(config):
             if X.size(-1) == 3:
                 X.transpose_(X.dim() - 2, X.dim() - 1)
 
-            codes, _, _ = E(X)
-            noise.normal_(mean=config['normal_mu'], std=config['normal_std'])
-            synth_logit = D(codes)
-            real_logit = D(noise)
-            loss_d = torch.mean(synth_logit) - torch.mean(real_logit)
+            codes, _, _ = E(X)  # [batch, z_size], _, _
+            noise.normal_(mean=config['normal_mu'], std=config['normal_std'])  # [batch, z_size]
+            synth_logit = D(codes)  # [batch, 1]
+            real_logit = D(noise)  # [batch, 1]
+            loss_d = torch.mean(synth_logit) - torch.mean(real_logit)  # real pred should be equal or bigger than synth pred
 
             alpha = torch.rand(config['batch_size'], 1).to(device)
             differences = codes - noise
@@ -190,9 +197,9 @@ def main(config):
                 reconstruction_loss(X.permute(0, 2, 1) + 0.5,
                                     X_rec.permute(0, 2, 1) + 0.5))
 
-            synth_logit = D(codes)
+            synth_logit = D(codes)  # we updated the weights of discriminator and we pass again through encoder and we will now update weights of encoder and generator (if we didnt update encoder already why to calculate synth_logits again? WE MUST HAVE UPDATED THEM BECAUSE IT GIVES DIFFERENT LOGITS)
 
-            loss_g = -torch.mean(synth_logit)
+            loss_g = -torch.mean(synth_logit)  # ??
 
             loss_eg = loss_e + loss_g
             EG_optim.zero_grad()
@@ -229,7 +236,7 @@ def main(config):
             X_rec = G(codes).data.cpu().numpy()
 
         for k in range(5):
-            fig = plot_3d_point_cloud(X[k][0], X[k][1], X[k][2],
+            fig = plot_3d_point_cloud(X[k][0].cpu().numpy(), X[k][1].cpu().numpy(), X[k][2].cpu().numpy(),
                                       in_u_sphere=True, show=False,
                                       title=str(epoch))
             fig.savefig(

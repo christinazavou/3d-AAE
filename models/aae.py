@@ -59,8 +59,8 @@ class Discriminator(nn.Module):
             nn.Linear(64, 1, bias=True)
         )
 
-    def forward(self, x):
-        logit = self.model(x)
+    def forward(self, x):  # [batch, z_size]
+        logit = self.model(x)  # [batch, 1]
         return logit
 
 
@@ -107,11 +107,11 @@ class Encoder(nn.Module):
         return eps.mul(std).add_(mu)
 
     def forward(self, x):
-        output = self.conv(x)
-        output2 = output.max(dim=2)[0]
-        logit = self.fc(output2)
-        mu = self.mu_layer(logit)
-        logvar = self.std_layer(logit)
-        z = self.reparameterize(mu, logvar)
+        output = self.conv(x)  # [batch, out_channels (512), Length (num of points)]
+        output2 = output.max(dim=2)[0]  # [batch, out_channels]
+        logit = self.fc(output2)  # [batch, 256]
+        mu = self.mu_layer(logit)  # [batch, z_size]
+        logvar = self.std_layer(logit)  # [batch, z_size]
+        z = self.reparameterize(mu, logvar)  # [batch, z_size]
         return z, mu, logvar
 
