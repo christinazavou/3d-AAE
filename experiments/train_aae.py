@@ -15,6 +15,7 @@ import torch.nn.parallel
 import torch.optim as optim
 import torch.utils.data
 from torch.utils.data import DataLoader
+from tensorboardX import SummaryWriter
 
 from utils.pcutil import plot_3d_point_cloud
 from utils.util import find_latest_epoch, prepare_results_dir, cuda_setup, setup_logging
@@ -85,6 +86,10 @@ def main(config):
                                    num_workers=config['num_workers'],
                                    drop_last=True, pin_memory=True)
 
+    def get_lr(optimizer):
+        for param_group in optimizer.param_groups:
+            return param_group['lr']
+
     #
     # Models
     #
@@ -141,6 +146,9 @@ def main(config):
         EG_optim.load_state_dict(torch.load(
             join(weights_path, f'{starting_epoch-1:05}_EGo.pth')))
 
+    writer = SummaryWriter(log_dir=results_dir)
+    global_step = 0
+
     for epoch in range(starting_epoch, config['max_epochs'] + 1):
         start_epoch_time = datetime.now()
 
@@ -152,6 +160,7 @@ def main(config):
         total_loss_eg = 0.0
         for i, point_data in enumerate(points_train_dataloader, 1):
             log.debug('-' * 20)
+            global_step += 1
 
             X, _ = point_data
             X = X.to(device)
@@ -212,19 +221,26 @@ def main(config):
             total_loss_eg += loss_eg.item()
             EG_optim.step()
 
-            log.debug(f'[{epoch}: ({i})] '
-                      f'Loss_D: {loss_d.item():.4f} '
-                      f'(GP: {loss_gp.item(): .4f}) '
-                      f'Loss_EG: {loss_eg.item():.4f} '
-                      f'(REC: {loss_e.item(): .4f}) '
-                      f'Time: {datetime.now() - start_epoch_time}')
+            if epoch % config['stat_frequency'] == 0:
+                log.debug(f'[{epoch}: ({i})] '
+                          f'Loss_D: {loss_d.item():.4f} '
+                          f'(GP: {loss_gp.item(): .4f}) '
+                          f'Loss_EG: {loss_eg.item():.4f} '
+                          f'(REC: {loss_e.item(): .4f}) '
+                          f'Time: {datetime.now() - start_epoch_time}')
+                writer.add_scalar('loss_D', loss_d.item(), global_step)
+                writer.add_scalar('loss_EG', loss_eg.item(), global_step)
+                writer.add_scalar('REC', loss_e.item(), global_step)
+                writer.add_scalar('lr_D', get_lr(D_optim), global_step)
+                writer.add_scalar('lr_EG', get_lr(EG_optim), global_step)
 
-        log.debug(
-            f'[{epoch}/{config["max_epochs"]}] '
-            f'Loss_D: {total_loss_d / i:.4f} '
-            f'Loss_EG: {total_loss_eg / i:.4f} '
-            f'Time: {datetime.now() - start_epoch_time}'
-        )
+        if epoch % config['stat_frequency'] == 0:
+            log.debug(
+                f'[{epoch}/{config["max_epochs"]}] '
+                f'Loss_D: {total_loss_d / i:.4f} '
+                f'Loss_EG: {total_loss_eg / i:.4f} '
+                f'Time: {datetime.now() - start_epoch_time}'
+            )
 
         #
         # Save intermediate results
@@ -237,31 +253,33 @@ def main(config):
             codes, _, _ = E(X)
             X_rec = G(codes).data.cpu().numpy()
 
-        for k in range(5):
-            fig = plot_3d_point_cloud(X[k][0].cpu().numpy(), X[k][1].cpu().numpy(), X[k][2].cpu().numpy(),
-                                      in_u_sphere=True, show=False,
-                                      title=str(epoch))
-            fig.savefig(
-                join(results_dir, 'samples', f'{epoch:05}_{k}_real.png'))
-            plt.close(fig)
+        if epoch % config['stat_frequency'] == 0:
 
-        for k in range(5):
-            fig = plot_3d_point_cloud(fake[k][0], fake[k][1], fake[k][2],
-                                      in_u_sphere=True, show=False,
-                                      title=str(epoch))
-            fig.savefig(
-                join(results_dir, 'samples', f'{epoch:05}_{k}_fixed.png'))
-            plt.close(fig)
+            for k in range(5):
+                fig = plot_3d_point_cloud(X[k][0].cpu().numpy(), X[k][1].cpu().numpy(), X[k][2].cpu().numpy(),
+                                          in_u_sphere=True, show=False,
+                                          title=str(epoch))
+                fig.savefig(
+                    join(results_dir, 'samples', f'{epoch:05}_{k}_real.png'))
+                plt.close(fig)
 
-        for k in range(5):
-            fig = plot_3d_point_cloud(X_rec[k][0],
-                                      X_rec[k][1],
-                                      X_rec[k][2],
-                                      in_u_sphere=True, show=False,
-                                      title=str(epoch))
-            fig.savefig(join(results_dir, 'samples',
-                             f'{epoch:05}_{k}_reconstructed.png'))
-            plt.close(fig)
+            for k in range(5):
+                fig = plot_3d_point_cloud(fake[k][0], fake[k][1], fake[k][2],
+                                          in_u_sphere=True, show=False,
+                                          title=str(epoch))
+                fig.savefig(
+                    join(results_dir, 'samples', f'{epoch:05}_{k}_fixed.png'))
+                plt.close(fig)
+
+            for k in range(5):
+                fig = plot_3d_point_cloud(X_rec[k][0],
+                                          X_rec[k][1],
+                                          X_rec[k][2],
+                                          in_u_sphere=True, show=False,
+                                          title=str(epoch))
+                fig.savefig(join(results_dir, 'samples',
+                                 f'{epoch:05}_{k}_reconstructed.png'))
+                plt.close(fig)
 
         if epoch % config['save_frequency'] == 0:
             torch.save(G.state_dict(), join(weights_path, f'{epoch:05}_G.pth'))

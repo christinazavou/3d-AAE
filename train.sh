@@ -24,6 +24,6 @@ echo -e "GPU(s): $CUDA_VISIBLE_DEVICES" >> $log_file
 export PYTHONPATH=$PYTHONPATH:${SOURCE_DIR}:${SOURCE_DIR}/experiments
 cd ${SOURCE_DIR}/experiments
 
-args="--config ${SOURCE_DIR}/settings/hyperparams_gypsum.json"
+args="--config ${SOURCE_DIR}/settings/hyperparams_annfass_gypsum.json"
 echo "${PY_EXE} train_aae.py $args" >> "$log_file"
 ${PY_EXE} train_aae.py $args 2>&1 | tee -a "$log_file"

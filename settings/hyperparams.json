@@ -35,6 +35,7 @@
 
     "seed": 2018,
     "save_frequency": 5,
+    "stat_frequency": 5,
     "epsilon": 0.001,
 
     "arch": "aae",
