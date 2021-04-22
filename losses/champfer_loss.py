@@ -8,7 +8,7 @@ class ChamferLoss(nn.Module):
         super(ChamferLoss, self).__init__()
         self.use_cuda = torch.cuda.is_available()
 
-    def forward(self, preds, gts):
+    def forward(self, preds, gts):  # [batch_size, num_points, 3(xyz)]
         P = self.batch_pairwise_dist(gts, preds)
         mins, _ = torch.min(P, 1)
         loss_1 = torch.sum(mins)

@@ -14,12 +14,16 @@ export PYTHONUNBUFFERED="True"
 PY_EXE=/home/maverkiou/miniconda2/envs/style_detect_env/bin/python
 SOURCE_DIR=/home/maverkiou/zavou/3d-AAE
 
-log_file=%j_$TIME.log
+log_file=$TIME.log
 
 VERSION=$(git rev-parse HEAD)
 
 echo Logging output to "$log_file"
 echo "Version: ${VERSION}" > "$log_file"
 echo -e "GPU(s): $CUDA_VISIBLE_DEVICES" >> $log_file
-echo "cd ${SOURCE_DIR}/experiments && ${PY_EXE} train_aae.py --config ../settings/hyperparams_gypsum.json >> "$log_file"
-cd ${SOURCE_DIR}/experiments && ${PY_EXE} train_aae.py --config ../settings/hyperparams_gypsum.json 2>&1 | tee -a "$log_file"
+export PYTHONPATH=$PYTHONPATH:${SOURCE_DIR}:${SOURCE_DIR}/experiments
+cd ${SOURCE_DIR}/experiments
+
+args="--config ${SOURCE_DIR}/settings/hyperparams_gypsum.json"
+echo "${PY_EXE} train_aae.py $args" >> "$log_file"
+${PY_EXE} train_aae.py $args 2>&1 | tee -a "$log_file"
