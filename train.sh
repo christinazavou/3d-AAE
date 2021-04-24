@@ -7,6 +7,11 @@
 #SBATCH --time=7-00:00         # Maximum runtime in D-HH:MM
 #SBATCH --mem-per-cpu=10000   # Memory in MB per cpu allocated
 
+MAIN_FILE=${MAIN_FILE:-train_aae.py}
+CONFIG_FILE=${CONFIG_FILE:-hyperparams_annfass_gypsum.json}
+echo "MAIN_FILE $MAIN_FILE"
+echo "CONFIG_FILE $CONFIG_FILE"
+
 TIME=$(date +"%Y-%m-%d_%H-%M-%S")
 
 export PYTHONUNBUFFERED="True"
@@ -24,6 +29,6 @@ echo -e "GPU(s): $CUDA_VISIBLE_DEVICES" >> $log_file
 export PYTHONPATH=$PYTHONPATH:${SOURCE_DIR}:${SOURCE_DIR}/experiments
 cd ${SOURCE_DIR}/experiments
 
-args="--config ${SOURCE_DIR}/settings/hyperparams_annfass_gypsum.json"
-echo "${PY_EXE} train_aae.py $args" >> "$log_file"
-${PY_EXE} train_aae.py $args 2>&1 | tee -a "$log_file"
+args="--config ${SOURCE_DIR}/settings/${CONFIG_FILE}"
+echo "${PY_EXE} ${MAIN_FILE} $args" >> "$log_file"
+${PY_EXE} ${MAIN_FILE} $args 2>&1 | tee -a "$log_file"

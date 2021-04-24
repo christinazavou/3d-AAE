@@ -14,6 +14,7 @@ import torch.nn.parallel
 import torch.optim as optim
 import torch.utils.data
 from torch.utils.data import DataLoader
+from tensorboardX import SummaryWriter
 
 from losses.champfer_loss import ChamferLoss
 from losses.chamfer_loss import CustomChamferDistance
@@ -29,6 +30,11 @@ def weights_init(m):
         torch.nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
         if m.bias is not None:
             torch.nn.init.constant_(m.bias, 0)
+
+
+def get_lr(optimizer):
+    for param_group in optimizer.param_groups:
+        return param_group['lr']
 
 
 def main(config):
@@ -104,6 +110,9 @@ def main(config):
 
         EG_optim.load_state_dict(torch.load(join(weights_path, f'{starting_epoch-1:05}_EGo.pth')))
 
+    writer = SummaryWriter(log_dir=results_dir)
+    global_step = 0
+
     for epoch in range(starting_epoch, config['max_epochs'] + 1):
         start_epoch_time = datetime.now()
 
@@ -114,6 +123,7 @@ def main(config):
         total_loss = 0.0
         for i, point_data in enumerate(points_dataloader, 1):
             log.debug('-' * 20)
+            global_step += 1
 
             CX, DCX, SX, _ = point_data
             CX = CX.to(device)
@@ -146,10 +156,14 @@ def main(config):
             total_loss += loss.item()
             EG_optim.step()
 
-            log.debug(f'[{epoch}: ({i})] '
-                      f'Loss: {loss.item():.4f} '
-                      f'Time: {datetime.now() - start_epoch_time}')
+            if epoch % config['stat_frequency'] == 0:
+                log.debug(f'[{epoch}: ({i})] '
+                          f'Loss: {loss.item():.4f} '
+                          f'Time: {datetime.now() - start_epoch_time}')
+                writer.add_scalar('loss', loss.item(), global_step)
+                writer.add_scalar('lr', get_lr(EG_optim), global_step)
 
+    if epoch % config['stat_frequency'] == 0:
         log.debug(
             f'[{epoch}/{config["max_epochs"]}] '
             f'Loss: {total_loss / i:.4f} '
@@ -168,37 +182,39 @@ def main(config):
             z = torch.cat([z_c, z_s], 1)
             X_rec = G(z).data.cpu().numpy()
 
-        for k in range(5):
-            fig = plot_3d_point_cloud(CX[k][0], CX[k][1], CX[k][2],
-                                      in_u_sphere=True, show=False,
-                                      title=str(epoch))
-            fig.savefig(
-                join(results_dir, 'samples', f'{epoch:05}_{k}_content.png'))
-            plt.close(fig)
+        if epoch % config['stat_frequency'] == 0:
 
-        for k in range(5):
-            fig = plot_3d_point_cloud(SX[k][0], SX[k][1], SX[k][2],
-                                      in_u_sphere=True, show=False,
-                                      title=str(epoch))
-            fig.savefig(
-                join(results_dir, 'samples', f'{epoch:05}_{k}_style.png'))
-            plt.close(fig)
+            for k in range(4):
+                fig = plot_3d_point_cloud(CX[k][0].cpu().numpy(), CX[k][1].cpu().numpy(), CX[k][2].cpu().numpy(),
+                                          in_u_sphere=True, show=False,
+                                          title=str(epoch))
+                fig.savefig(
+                    join(results_dir, 'samples', f'{epoch:05}_{k}_content.png'))
+                plt.close(fig)
 
-        for k in range(5):
-            fig = plot_3d_point_cloud(DCX[k][0], DCX[k][1], DCX[k][2],
-                                      in_u_sphere=True, show=False,
-                                      title=str(epoch))
-            fig.savefig(
-                join(results_dir, 'samples', f'{epoch:05}_{k}_detailed_content.png'))
-            plt.close(fig)
+            for k in range(4):
+                fig = plot_3d_point_cloud(SX[k][0].cpu().numpy(), SX[k][1].cpu().numpy(), SX[k][2].cpu().numpy(),
+                                          in_u_sphere=True, show=False,
+                                          title=str(epoch))
+                fig.savefig(
+                    join(results_dir, 'samples', f'{epoch:05}_{k}_style.png'))
+                plt.close(fig)
 
-        for k in range(5):
-            fig = plot_3d_point_cloud(X_rec[k][0], X_rec[k][1], X_rec[k][2],
-                                      in_u_sphere=True, show=False,
-                                      title=str(epoch))
-            fig.savefig(join(results_dir, 'samples',
-                             f'{epoch:05}_{k}_reconstructed.png'))
-            plt.close(fig)
+            for k in range(4):
+                fig = plot_3d_point_cloud(DCX[k,:,0].cpu().numpy(), DCX[k,:,1].cpu().numpy(), DCX[k,:,2].cpu().numpy(),
+                                          in_u_sphere=True, show=False,
+                                          title=str(epoch))
+                fig.savefig(
+                    join(results_dir, 'samples', f'{epoch:05}_{k}_detailed_content.png'))
+                plt.close(fig)
+
+            for k in range(4):
+                fig = plot_3d_point_cloud(X_rec[k][0], X_rec[k][1], X_rec[k][2],
+                                          in_u_sphere=True, show=False,
+                                          title=str(epoch))
+                fig.savefig(join(results_dir, 'samples',
+                                 f'{epoch:05}_{k}_reconstructed.png'))
+                plt.close(fig)
 
         if epoch % config['save_frequency'] == 0:
             torch.save(G.state_dict(), join(weights_path, f'{epoch:05}_G.pth'))
