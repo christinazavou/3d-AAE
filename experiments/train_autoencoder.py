@@ -153,16 +153,19 @@ def main(config):
             total_loss += loss.item()
             EG_optim.step()
 
-            log.debug(f'[{epoch}: ({i})] '
+            if epoch % config['stat_frequency'] == 0:
+                log.debug(f'[{epoch}: ({i})] '
                       f'Loss: {loss.item():.4f} '
                       f'Time: {datetime.now() - start_epoch_time}')
+                writer.add_scalar('loss', loss.item(), global_step)
+                writer.add_scalar('lr', get_lr(EG_optim), global_step)
 
-    if epoch % config['stat_frequency'] == 0:
-        log.debug(
-            f'[{epoch}/{config["max_epochs"]}] '
-            f'Loss: {total_loss / i:.4f} '
-            f'Time: {datetime.now() - start_epoch_time}'
-        )
+        if epoch % config['stat_frequency'] == 0:
+            log.debug(
+                f'[{epoch}/{config["max_epochs"]}] '
+                f'Loss: {total_loss / i:.4f} '
+                f'Time: {datetime.now() - start_epoch_time}'
+            )
 
         #
         # Save intermediate results
