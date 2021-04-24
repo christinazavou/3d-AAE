@@ -14,10 +14,11 @@ import torch.nn.parallel
 import torch.optim as optim
 import torch.utils.data
 from torch.utils.data import DataLoader
+from tensorboardX import SummaryWriter
 
 from datasets.shapenet import ShapeNetDataset
 from losses.champfer_loss import ChamferLoss
-from losses.earth_mover_distance import EMD
+from losses.chamfer_loss import CustomChamferDistance
 from utils.pcutil import plot_3d_point_cloud
 from utils.util import find_latest_epoch, prepare_results_dir, cuda_setup, setup_logging
 
@@ -30,6 +31,11 @@ def weights_init(m):
         torch.nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
         if m.bias is not None:
             torch.nn.init.constant_(m.bias, 0)
+
+
+def get_lr(optimizer):
+    for param_group in optimizer.param_groups:
+        return param_group['lr']
 
 
 def main(config):
@@ -47,7 +53,7 @@ def main(config):
     setup_logging(results_dir)
     log = logging.getLogger(__name__)
 
-    device = cuda_setup(config['cuda'], config['gpu'])
+    device = cuda_setup(config['cuda'])
     log.debug(f'Device variable: {device}')
     if device.type == 'cuda':
         log.debug(f'Current CUDA device: {torch.cuda.current_device()}')
@@ -59,16 +65,25 @@ def main(config):
     #
     dataset_name = config['dataset'].lower()
     if dataset_name == 'shapenet':
-        dataset = ShapeNetDataset(root_dir=config['data_dir'],
+        from datasets.shapenet import ShapeNetDataset
+        train_dataset = ShapeNetDataset(root_dir=config['data_dir'],
                                   classes=config['classes'])
+        val_dataset = ShapeNetDataset(root_dir=config['data_dir'],
+                                  classes=config['classes'], split='valid')
+    elif dataset_name == 'annfasscomponent':
+        from datasets.annfasscomponent import AnnfassComponentDataset
+        train_dataset = AnnfassComponentDataset(root_dir=config['data_dir'],
+                                classes=config['classes'], n_points=config['n_points'])
+        val_dataset = AnnfassComponentDataset(root_dir=config['data_dir'], split='val',
+                                                classes=config['classes'], n_points=config['n_points'])
     else:
         raise ValueError(f'Invalid dataset name. Expected `shapenet` or '
                          f'`faust`. Got: `{dataset_name}`')
     log.debug("Selected {} classes. Loaded {} samples.".format(
         'all' if not config['classes'] else ','.join(config['classes']),
-        len(dataset)))
+        len(train_dataset)))
 
-    points_dataloader = DataLoader(dataset, batch_size=config['batch_size'],
+    points_dataloader = DataLoader(train_dataset, batch_size=config['batch_size'],
                                    shuffle=config['shuffle'],
                                    num_workers=config['num_workers'],
                                    drop_last=True, pin_memory=True)
@@ -76,7 +91,7 @@ def main(config):
     #
     # Models
     #
-    arch = import_module(f"model.architectures.{config['arch']}")
+    arch = import_module(f"models.{config['arch']}")
     G = arch.Generator(config).to(device)
     E = arch.Encoder(config).to(device)
 
@@ -84,9 +99,7 @@ def main(config):
     E.apply(weights_init)
 
     if config['reconstruction_loss'].lower() == 'chamfer':
-        reconstruction_loss = ChamferLoss().to(device)
-    elif config['reconstruction_loss'].lower() == 'earth_mover':
-        reconstruction_loss = EMD().to(device)
+        reconstruction_loss = CustomChamferDistance()
     else:
         raise ValueError(f'Invalid reconstruction loss. Accepted `chamfer` or '
                          f'`earth_mover`, got: {config["reconstruction_loss"]}')
@@ -99,13 +112,13 @@ def main(config):
                         **config['optimizer']['EG']['hyperparams'])
 
     if starting_epoch > 1:
-        G.load_state_dict(torch.load(
-            join(weights_path, f'{starting_epoch-1:05}_G.pth')))
-        E.load_state_dict(torch.load(
-            join(weights_path, f'{starting_epoch-1:05}_E.pth')))
+        G.load_state_dict(torch.load(join(weights_path, f'{starting_epoch-1:05}_G.pth')))
+        E.load_state_dict(torch.load(join(weights_path, f'{starting_epoch-1:05}_E.pth')))
 
-        EG_optim.load_state_dict(torch.load(
-            join(weights_path, f'{starting_epoch-1:05}_EGo.pth')))
+        EG_optim.load_state_dict(torch.load(join(weights_path, f'{starting_epoch-1:05}_EGo.pth')))
+
+    writer = SummaryWriter(log_dir=results_dir)
+    global_step = 0
 
     for epoch in range(starting_epoch, config['max_epochs'] + 1):
         start_epoch_time = datetime.now()
@@ -116,6 +129,7 @@ def main(config):
         total_loss = 0.0
         for i, point_data in enumerate(points_dataloader, 1):
             log.debug('-' * 20)
+            global_step += 1
 
             X, _ = point_data
             X = X.to(device)
@@ -143,6 +157,7 @@ def main(config):
                       f'Loss: {loss.item():.4f} '
                       f'Time: {datetime.now() - start_epoch_time}')
 
+    if epoch % config['stat_frequency'] == 0:
         log.debug(
             f'[{epoch}/{config["max_epochs"]}] '
             f'Loss: {total_loss / i:.4f} '
@@ -157,28 +172,28 @@ def main(config):
         with torch.no_grad():
             X_rec = G(E(X)).data.cpu().numpy()
 
-        for k in range(5):
-            fig = plot_3d_point_cloud(X[k][0], X[k][1], X[k][2],
-                                      in_u_sphere=True, show=False,
-                                      title=str(epoch))
-            fig.savefig(
-                join(results_dir, 'samples', f'{epoch:05}_{k}_real.png'))
-            plt.close(fig)
+        if epoch % config['stat_frequency'] == 0:
+            for k in range(4):
+                fig = plot_3d_point_cloud(X[k][0].cpu().numpy(), X[k][1].cpu().numpy(), X[k][2].cpu().numpy(),
+                                          in_u_sphere=True, show=False,
+                                          title=str(epoch))
+                fig.savefig(
+                    join(results_dir, 'samples', f'{epoch:05}_{k}_real.png'))
+                plt.close(fig)
 
-        for k in range(5):
-            fig = plot_3d_point_cloud(X_rec[k][0], X_rec[k][1], X_rec[k][2],
-                                      in_u_sphere=True, show=False,
-                                      title=str(epoch))
-            fig.savefig(join(results_dir, 'samples',
-                             f'{epoch:05}_{k}_reconstructed.png'))
-            plt.close(fig)
+            for k in range(4):
+                fig = plot_3d_point_cloud(X_rec[k][0], X_rec[k][1], X_rec[k][2],
+                                          in_u_sphere=True, show=False,
+                                          title=str(epoch))
+                fig.savefig(join(results_dir, 'samples',
+                                 f'{epoch:05}_{k}_reconstructed.png'))
+                plt.close(fig)
 
         if epoch % config['save_frequency'] == 0:
             torch.save(G.state_dict(), join(weights_path, f'{epoch:05}_G.pth'))
             torch.save(E.state_dict(), join(weights_path, f'{epoch:05}_E.pth'))
 
-            torch.save(EG_optim.state_dict(),
-                       join(weights_path, f'{epoch:05}_EGo.pth'))
+            torch.save(EG_optim.state_dict(), join(weights_path, f'{epoch:05}_EGo.pth'))
 
 
 if __name__ == '__main__':

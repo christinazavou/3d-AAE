@@ -1,6 +1,6 @@
 {
-    "experiment_name": "experiment_aae",
-    "results_root": "/media/graphicslab/BigData/zavou/ANNFASS_CODE/3daae-results",
+    "experiment_name": "experiment_ae_content_style",
+    "results_root": "/mnt/nfs/work1/kalo/maverkiou/zavou/3daae-results",
     "clean_results_dir": false,
 
     "cuda": true,
@@ -12,7 +12,7 @@
     ],
 
     "dataset": "contentstylecomponent",
-    "data_dir": "/media/graphicslab/BigData/zavou/ANNFASS_CODE/style_detection/logs/annfass_content_style_trainsplit",
+    "data_dir": "/mnt/nfs/work1/kalo/maverkiou/zavou/data/logs/annfass_content_style_splits_train",
     "classes": [],
     "shuffle": true,
     "transforms": ["rotate"],
@@ -34,8 +34,8 @@
     "normal_std": 0.2,
 
     "seed": 2018,
-    "save_frequency": 5,
-    "stat_frequency": 5,
+    "save_frequency": 250,
+    "stat_frequency": 25,
     "epsilon": 0.001,
 
     "arch": "autoencoder_content_style",

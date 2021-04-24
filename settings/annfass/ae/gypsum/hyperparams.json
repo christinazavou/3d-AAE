@@ -1,6 +1,6 @@
 {
-    "experiment_name": "experiment_aae",
-    "results_root": "/media/graphicslab/BigData/zavou/ANNFASS_CODE/3d-AAE/experiments-logs/annfasscomponent",
+    "experiment_name": "experiment_ae",
+    "results_root": "/mnt/nfs/work1/kalo/maverkiou/zavou/3daae-results",
     "clean_results_dir": false,
 
     "cuda": true,
@@ -12,7 +12,7 @@
     ],
 
     "dataset": "annfasscomponent",
-    "data_dir": "/media/graphicslab/BigData/zavou/ANNFASS_CODE/style_detection/logs/annfass_content_style_splits/style",
+    "data_dir": "/mnt/nfs/work1/kalo/maverkiou/zavou/data/logs/annfass_content_style_splits_train/style",
     "classes": [],
     "shuffle": true,
     "transforms": ["rotate"],
@@ -20,10 +20,9 @@
     "n_points": 2048,
 
     "max_epochs": 2000,
-    "batch_size": 16,
+    "batch_size": 8,
     "gp_lambda": 10,
     "reconstruction_coef": 0.05,
-    "z_size": 2048,
     "distribution": "bernoulli",
 
     "p": 0.2,
@@ -34,17 +33,13 @@
     "normal_std": 0.2,
 
     "seed": 2018,
-    "save_frequency": 5,
-    "stat_frequency": 5,
+    "save_frequency": 250,
+    "stat_frequency": 25,
     "epsilon": 0.001,
 
-    "arch": "aae",
+    "arch": "autoencoder",
+    "z_size": 2048,
     "model": {
-        "D": {
-            "dropout": 0.5,
-            "use_bias": true,
-            "relu_slope": 0.2
-        },
         "G": {
             "use_bias": true,
             "relu_slope": 0.2
@@ -53,6 +48,7 @@
             "use_bias": true,
             "relu_slope": 0.2
         }
+
     },
     "optimizer": {
         "D": {
