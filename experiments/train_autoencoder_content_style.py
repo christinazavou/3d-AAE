@@ -163,12 +163,12 @@ def main(config):
                 writer.add_scalar('loss', loss.item(), global_step)
                 writer.add_scalar('lr', get_lr(EG_optim), global_step)
 
-    if epoch % config['stat_frequency'] == 0:
-        log.debug(
-            f'[{epoch}/{config["max_epochs"]}] '
-            f'Loss: {total_loss / i:.4f} '
-            f'Time: {datetime.now() - start_epoch_time}'
-        )
+        if epoch % config['stat_frequency'] == 0:
+            log.debug(
+                f'[{epoch}/{config["max_epochs"]}] '
+                f'Loss: {total_loss / i:.4f} '
+                f'Time: {datetime.now() - start_epoch_time}'
+            )
 
         #
         # Save intermediate results
