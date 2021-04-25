@@ -1,7 +1,12 @@
 
 train-ae-content-style:
 	export MAIN_FILE=train_autoencoder_content_style.py \
-		&& export CONFIG_FILE=hyperparams_ae_content_style_gypsum.json \
+		&& export CONFIG_FILE=annfass/ae_content_style/gypsum/hyperparams.json \
+		&& sbatch train.sh
+
+train-ae-content-style-extraloss:
+	export MAIN_FILE=train_autoencoder_content_style_extraloss.py \
+		&& export CONFIG_FILE=annfass/ae_content_style_extraloss/gypsum/hyperparams.json \
 		&& sbatch train.sh
 
 

@@ -15,6 +15,7 @@ import torch.optim as optim
 import torch.utils.data
 from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
+import torch.nn as nn
 
 from losses.champfer_loss import ChamferLoss
 from losses.chamfer_loss import CustomChamferDistance
@@ -96,6 +97,8 @@ def main(config):
         raise ValueError(f'Invalid reconstruction loss. Accepted `chamfer` or '
                          f'`earth_mover`, got: {config["reconstruction_loss"]}')
 
+    style_loss_criterion = nn.MSELoss()
+
     #
     # Optimizers
     #
@@ -142,10 +145,15 @@ def main(config):
             z = torch.cat([z_c, z_s], 1)
             X_rec = G(z)
 
-            loss = torch.mean(
+            X_rec_style_enc = SE(X_rec)
+
+            content_loss = torch.mean(
                 config['reconstruction_coef'] *
                 reconstruction_loss(DCX + 0.5,
                                     X_rec.permute(0, 2, 1) + 0.5))
+
+            style_loss = style_loss_criterion(z_s, X_rec_style_enc)
+            loss = content_loss + style_loss
 
             EG_optim.zero_grad()
             CE.zero_grad()
@@ -161,6 +169,8 @@ def main(config):
                           f'Loss: {loss.item():.4f} '
                           f'Time: {datetime.now() - start_epoch_time}')
                 writer.add_scalar('loss', loss.item(), global_step)
+                writer.add_scalar('content_loss', content_loss.item(), global_step)
+                writer.add_scalar('style_loss', style_loss.item(), global_step)
                 writer.add_scalar('lr', get_lr(EG_optim), global_step)
 
         if epoch % config['stat_frequency'] == 0:
