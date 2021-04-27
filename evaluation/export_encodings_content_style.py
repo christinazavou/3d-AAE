@@ -81,6 +81,7 @@ def main(eval_config):
     with torch.no_grad():
 
         buildings_groups = {}
+        building_components = {}
         for XC_batch, XDC_batch, XS_batch, X_batch_files in data_loader:
             XC_batch = XC_batch.to(device)
 
@@ -91,12 +92,16 @@ def main(eval_config):
             for z_e, CX_file in zip(cz_e_batch, X_batch_files[0]):
                 filename = os.path.basename(CX_file)
                 building = filename.split("_style_mesh_")[0]
+                component = filename.split("_style_mesh_")[1].replace("_coarse.ply", "")
+                building_components.setdefault(building, [])
+                if component in building_components[building]:
+                    continue
                 if building in buildings_groups:
                     group = buildings_groups[building] + 1
                 else:
                     group = 0
                 buildings_groups[building] = group
-                component = filename.split("_style_mesh_")[1].replace("_coarse.ply", "")
+                building_components[building].append(component)
                 os.makedirs(os.path.join(encodings_path, building), exist_ok=True)
                 np.save(join(encodings_path, building, f"group{group}_{component}.npy"), z_e.cpu().numpy())
 
