@@ -77,8 +77,7 @@ def _pc_to_voxel_distribution(pc: torch.Tensor, n_voxels: int = 64) -> np.ndarra
 #
 
 
-def jsd_between_point_cloud_sets(sample_pcs, ref_pcs, voxels=28,
-                                 in_unit_sphere=True):
+def jsd_between_point_cloud_sets(sample_pcs, ref_pcs, voxels=28, in_unit_sphere=True):
     """Computes the JSD between two sets of point-clouds, as introduced in the
     paper ```Learning Representations And Generative Models For 3D Point
     Clouds```.
@@ -117,13 +116,13 @@ def _entropy_of_occupancy_grid(pclouds, grid_resolution, in_sphere=False):
     nn = NearestNeighbors(n_neighbors=1).fit(grid_coordinates)
 
     for pc in pclouds:
-        _, indices = nn.kneighbors(pc)
+        _, indices = nn.kneighbors(pc)  # assuming the pc is normalized in unit cube as well (like the grid_coordinates) we can find the closest cell...
         indices = np.squeeze(indices)
         for i in indices:
-            grid_counters[i] += 1
+            grid_counters[i] += 1  # frequency
         indices = np.unique(indices)
         for i in indices:
-            grid_bernoulli_rvars[i] += 1
+            grid_bernoulli_rvars[i] += 1  # occupancy
 
     acc_entropy = 0.0
     n = float(len(pclouds))

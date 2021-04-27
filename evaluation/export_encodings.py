@@ -1,6 +1,7 @@
 import argparse
 import json
 import logging
+import os.path
 import random
 from importlib import import_module
 from os.path import join
@@ -25,7 +26,6 @@ def main(eval_config):
     torch.manual_seed(train_config['seed'])
     torch.cuda.manual_seed_all(train_config['seed'])
 
-    setup_logging(join(train_results_path, 'results'))
     log = logging.getLogger(__name__)
 
     weights_path = join(train_results_path, 'weights')
@@ -34,6 +34,9 @@ def main(eval_config):
     else:
         epoch = eval_config['epoch']
     log.debug(f'Starting from epoch: {epoch}')
+
+    encodings_path = join(train_results_path, 'encodings', f'{epoch:05}_z_e')
+    os.makedirs(encodings_path, exist_ok=True)
 
     device = cuda_setup(eval_config['cuda'])
     log.debug(f'Device variable: {device}')
@@ -49,7 +52,7 @@ def main(eval_config):
                                   classes=train_config['classes'], split='test')
     elif dataset_name == 'annfasscomponent':
         from datasets.annfasscomponent import AnnfassComponentDataset
-        dataset = AnnfassComponentDataset(root_dir=eval_config['data_dir'], split='val',
+        dataset = AnnfassComponentDataset(root_dir=eval_config['data_dir'], split='train',
                                           classes=train_config['classes'], n_points=train_config['n_points'])
     else:
         raise ValueError(f'Invalid dataset name. Expected `shapenet` or '
@@ -59,74 +62,46 @@ def main(eval_config):
     log.debug(f'Selected {classes_selected} classes. Loaded {len(dataset)} '
               f'samples.')
 
-    if 'distribution' in train_config:
-        distribution = train_config['distribution']
-    elif 'distribution' in eval_config:
-        distribution = eval_config['distribution']
-    else:
-        log.warning('No distribution type specified. Assumed normal = N(0, 0.2)')
-        distribution = 'normal'
-
     #
     # Models
     #
     arch = import_module(f"models.{eval_config['arch']}")
     E = arch.Encoder(train_config).to(device)
-    G = arch.Generator(train_config).to(device)
 
     #
     # Load saved state
     #
     E.load_state_dict(torch.load(join(weights_path, f'{epoch:05}_E.pth')))
-    G.load_state_dict(torch.load(join(weights_path, f'{epoch:05}_G.pth')))
 
     E.eval()
-    G.eval()
 
     num_samples = len(dataset)
-    data_loader = DataLoader(dataset, batch_size=num_samples,
+    data_loader = DataLoader(dataset, batch_size=eval_config['batch_size'],
                              shuffle=False, num_workers=4,
                              drop_last=False, pin_memory=True)
 
-    # We take 3 times as many samples as there are in test data in order to
-    # perform JSD calculation in the same manner as in the reference publication
-    noise = torch.FloatTensor(3 * num_samples, train_config['z_size'], 1)
-    noise = noise.to(device)
-
-    X, _ = next(iter(data_loader))
-    X = X.to(device)
-
-    np.save(join(train_results_path, 'results', f'{epoch:05}_X'), X.cpu().numpy())
-
-    for i in range(3):
-        if distribution == 'normal':
-            noise.normal_(0, 0.2)
-        elif distribution == 'beta':
-            noise_np = np.random.beta(train_config['z_beta_a'],
-                                      train_config['z_beta_b'],
-                                      noise.shape)
-            noise = torch.tensor(noise_np).float().round().to(device)
-        elif distribution == 'bernoulli':
-            p = torch.tensor(train_config['p']).to(device)
-            sampler = Bernoulli(probs=p)
-            noise = sampler.sample(noise.shape)
-
-        with torch.no_grad():
-            X_g = G(noise)
-        if X_g.shape[-2:] == (3, 2048):
-            X_g.transpose_(1, 2)
-
-        np.save(join(train_results_path, 'results', f'{epoch:05}_Xg_{i}'), X_g.cpu().numpy())
-
     with torch.no_grad():
-        z_e = E(X.transpose(1, 2))
-        if isinstance(z_e, tuple):
-            z_e = z_e[0]
-        X_rec = G(z_e)
-    if X_rec.shape[-2:] == (3, 2048):
-        X_rec.transpose_(1, 2)
 
-    np.save(join(train_results_path, 'results', f'{epoch:05}_Xrec'), X_rec.cpu().numpy())
+        buildings_groups = {}
+        for X_batch, X_batch_indices in data_loader:
+            X_batch = X_batch.to(device)
+
+            z_e_batch = E(X_batch.transpose(1, 2))
+            if isinstance(z_e_batch, tuple):
+                z_e_batch = z_e_batch[0]
+
+            for z_e, X_idx in zip(z_e_batch, X_batch_indices):
+                X_file = dataset.files[X_idx]
+                filename = os.path.basename(X_file)
+                building = filename.split("_style_mesh_")[0]
+                if building in buildings_groups:
+                    group = buildings_groups[building] + 1
+                else:
+                    group = 0
+                buildings_groups[building] = group
+                component = filename.split("_style_mesh_")[1].replace("_detail.ply", "")
+                os.makedirs(os.path.join(encodings_path, building), exist_ok=True)
+                np.save(join(encodings_path, building, f"group{group}_{component}.npy"), z_e.cpu().numpy())
 
 
 if __name__ == '__main__':

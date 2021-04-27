@@ -81,4 +81,4 @@ class AnnfassComponentDataset(Dataset):
         if len(xyz) > self.n_points:
             xyz = xyz[np.random.randint(xyz.shape[0], size=self.n_points), :]
 
-        return xyz, -1
+        return xyz, idx

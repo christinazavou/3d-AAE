@@ -96,11 +96,11 @@ class ContentStyleComponentDataset(Dataset):
             logging.info(
                 f"Skipping {content_file}, {style_xyz}: do not have sufficient sampling density: {len(content_xyz)}, {len(style_xyz)}."
             )
-            return None, None, None, idx
+            return None, None, None, (content_file, content_detailed_file, style_file)
 
         if self.transform:
             content_xyz = self.transform(content_xyz)
             content_detailed_xyz = self.transform(content_detailed_xyz)
             style_xyz = self.transform(style_xyz)
 
-        return content_xyz, content_detailed_xyz, style_xyz, idx
+        return content_xyz, content_detailed_xyz, style_xyz, (content_file, content_detailed_file, style_file)

@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.distributions.beta import Beta
+from torch.distributions import Bernoulli
 from torch.utils.data import DataLoader
 
 from datasets.shapenet import ShapeNetDataset
@@ -49,7 +50,7 @@ def main(eval_config):
     epochs = sorted(e_epochs.intersection(g_epochs))
     log.debug(f'Testing epochs: {epochs}')
 
-    device = cuda_setup(eval_config['cuda'], eval_config['gpu'])
+    device = cuda_setup(eval_config['cuda'])
     log.debug(f'Device variable: {device}')
     if device.type == 'cuda':
         log.debug(f'Current CUDA device: {torch.cuda.current_device()}')
@@ -59,16 +60,12 @@ def main(eval_config):
     #
     dataset_name = train_config['dataset'].lower()
     if dataset_name == 'shapenet':
-        dataset = ShapeNetDataset(root_dir=train_config['data_dir'],
+        dataset = ShapeNetDataset(root_dir=eval_config['data_dir'],
                                   classes=train_config['classes'], split='valid')
-    elif dataset_name == 'faust':
-        from datasets.dfaust import DFaustDataset
-        dataset = DFaustDataset(root_dir=train_config['data_dir'],
-                                classes=train_config['classes'], split='valid')
-    elif dataset_name == 'mcgill':
-        from datasets.mcgill import McGillDataset
-        dataset = McGillDataset(root_dir=train_config['data_dir'],
-                                classes=train_config['classes'], split='valid')
+    elif dataset_name == 'annfasscomponent':
+        from datasets.annfasscomponent import AnnfassComponentDataset
+        dataset = AnnfassComponentDataset(root_dir=eval_config['data_dir'], split='val',
+                                          classes=train_config['classes'], n_points=train_config['n_points'])
     else:
         raise ValueError(f'Invalid dataset name. Expected `shapenet` or '
                          f'`faust`. Got: `{dataset_name}`')
@@ -88,16 +85,16 @@ def main(eval_config):
     #
     # Models
     #
-    arch = import_module(f"model.architectures.{train_config['arch']}")
+    arch = import_module(f"models.{train_config['arch']}")
     E = arch.Encoder(train_config).to(device)
     G = arch.Generator(train_config).to(device)
 
     E.eval()
     G.eval()
 
-    num_samples = len(dataset.point_clouds_names_valid)
+    num_samples = len(dataset)
     data_loader = DataLoader(dataset, batch_size=num_samples,
-                             shuffle=False, num_workers=4,
+                             shuffle=False, num_workers=0,
                              drop_last=False, pin_memory=True)
 
     # We take 3 times as many samples as there are in test data in order to
@@ -112,10 +109,8 @@ def main(eval_config):
 
     for epoch in reversed(epochs):
         try:
-            E.load_state_dict(torch.load(
-                join(weights_path, f'{epoch:05}_E.pth')))
-            G.load_state_dict(torch.load(
-                join(weights_path, f'{epoch:05}_G.pth')))
+            E.load_state_dict(torch.load(join(weights_path, f'{epoch:05}_E.pth')))
+            G.load_state_dict(torch.load(join(weights_path, f'{epoch:05}_G.pth')))
 
             start_clock = datetime.now()
 
@@ -129,6 +124,10 @@ def main(eval_config):
                                               train_config['z_beta_b'],
                                               noise.shape)
                     noise = torch.tensor(noise_np).float().round().to(device)
+                elif distribution == 'bernoulli':
+                    p = torch.tensor(train_config['p']).to(device)
+                    sampler = Bernoulli(probs=p)
+                    noise = sampler.sample(noise.shape)
 
                 with torch.no_grad():
                     X_g = G(noise)
