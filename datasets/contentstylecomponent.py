@@ -61,7 +61,9 @@ class ContentStyleComponentDataset(Dataset):
                 content_detailed_file = content_detailed_file.file.values[0]
 
                 other_style_building_df = style_building_df[style_building_df['component'] != component]
-                for random_pair in range(5):
+                if len(other_style_building_df) == 0:
+                    continue
+                for random_pair in range(min(len(other_style_building_df), 5)):
                     rnd_idx = random.sample(list(other_style_building_df.index), 1)[0]
                     style_file = other_style_building_df.loc[rnd_idx].file
 
