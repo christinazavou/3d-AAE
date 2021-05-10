@@ -37,7 +37,7 @@ synth_id_to_number = {k: i for i, k in enumerate(synth_id_to_category.keys())}
 
 class ShapeNetDataset(Dataset):
     def __init__(self, root_dir='/home/datasets/shapenet', classes=[],
-                 transform=None, split='train'):
+                 transform=None, split='train', **kwargs):
         """
         Args:
             root_dir (string): Directory with all the point clouds.

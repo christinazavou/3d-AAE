@@ -63,19 +63,17 @@ def main(config):
     #
     # Dataset
     #
-    dataset_name = config['dataset'].lower()
-    if dataset_name == 'contentstylecomponent':
-        from datasets.contentstylecomponent import ContentStyleComponentDataset
-        dataset = ContentStyleComponentDataset(root_dir=config['data_dir'])
-    else:
-        raise ValueError(f'Invalid dataset name. Expected `shapenet` or '
-                         f'`faust`. Got: `{dataset_name}`')
-    log.debug("Selected {} classes. Loaded {} samples.".format(
-        'all' if not config['classes'] else ','.join(config['classes']),
-        len(dataset)))
+    from datasets import load_dataset_class
+    dset_class = load_dataset_class(config['dataset'])
+    train_dataset = dset_class(config['data_dir'], **config["train_dataset"])
+    # val_dataset = dset_class(root_dir=config['data_dir'], classes=config['classes'], split='valid')
 
-    points_dataloader = DataLoader(dataset, batch_size=config['batch_size'],
-                                   shuffle=config['shuffle'],
+    log.debug("Selected {} classes. Loaded {} samples.".format(
+        'all' if not config["train_dataset"]['classes'] else ','.join(config["train_dataset"]['classes']),
+        len(train_dataset)))
+
+    points_dataloader = DataLoader(train_dataset, batch_size=config['batch_size'],
+                                   shuffle=config["train_dataset"]['shuffle'],
                                    num_workers=config['num_workers'],
                                    drop_last=True, pin_memory=True)
 

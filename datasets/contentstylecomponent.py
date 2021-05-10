@@ -23,7 +23,7 @@ STYLES = [
 
 class ContentStyleComponentDataset(Dataset):
 
-    def __init__(self, root_dir, transform=None, split='train', content_pts=1024, style_pts=8192):
+    def __init__(self, root_dir, transform=None, split='train', content_pts=1024, style_pts=8192, **kwargs):
         self.root_dir = root_dir
         self.split = split
         self.transform = transform

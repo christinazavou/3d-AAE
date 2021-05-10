@@ -8,21 +8,10 @@ from torch.utils.data import Dataset
 from utils.plyfile import load_ply
 
 
-STYLES = [
-    "Unknown",
-    "Colonial",
-    "Neo_classicism",
-    "Modernist",
-    "Ottoman",
-    "Gothic",
-    "Byzantine",
-    "Venetian"
-]
-
-
-class AnnfassComponentDataset(Dataset):
-    def __init__(self, root_dir='/media/graphicslab/BigData/zavou/ANNFASS_CODE/style_detection/logs/annfass_content_style_splits/style', classes=[],
-                 transform=None, split='train', n_points=2048):
+class BuildingComponentDataset(Dataset):
+    STYLES = []
+    def __init__(self, root_dir, classes=[],
+                 transform=None, split='train', n_points=2048, **kwargs):
         """
         Args:
             root_dir (string): Directory with all the point clouds.
@@ -34,7 +23,7 @@ class AnnfassComponentDataset(Dataset):
         self.split = split
 
         if not classes:
-            classes = STYLES
+            classes = self.STYLES
 
         self.phase = split
         self.files = []
@@ -82,3 +71,21 @@ class AnnfassComponentDataset(Dataset):
             xyz = xyz[np.random.randint(xyz.shape[0], size=self.n_points), :]
 
         return xyz, idx
+
+
+class AnnfassComponentDataset(BuildingComponentDataset):
+    STYLES = [
+        "Unknown",
+        "Colonial",
+        "Neo_classicism",
+        "Modernist",
+        "Ottoman",
+        "Gothic",
+        "Byzantine",
+        "Venetian"
+    ]
+
+
+class BuildnetComponentDataset(BuildingComponentDataset):
+    STYLES = [
+    ]

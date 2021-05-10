@@ -25,7 +25,7 @@ category_to_number = {c: i for i, c in enumerate(all_classes)}
 
 class ModelNet40(Dataset):
     def __init__(self, root_dir='/home/datasets/modelnet40', classes=[],
-                 transform=[], split='train', valid_percent=10, percent_supervised=0.0):
+                 transform=[], split='train', valid_percent=10, percent_supervised=0.0, **kwargs):
         """
         Args:
             root_dir (string): Directory with all the point clouds.

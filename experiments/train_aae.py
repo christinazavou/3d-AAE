@@ -65,11 +65,11 @@ def main(config):
         val_dataset = ShapeNetDataset(root_dir=config['data_dir'],
                                   classes=config['classes'], split='valid')
     elif dataset_name == 'annfasscomponent':
-        from datasets.annfasscomponent import AnnfassComponentDataset
-        train_dataset = AnnfassComponentDataset(root_dir=config['data_dir'],
-                                classes=config['classes'], n_points=config['n_points'])
-        val_dataset = AnnfassComponentDataset(root_dir=config['data_dir'], split='val',
-                                                classes=config['classes'], n_points=config['n_points'])
+        from datasets.annfasscomponent import BuildingComponentDataset
+        train_dataset = BuildingComponentDataset(root_dir=config['data_dir'],
+                                                 classes=config['classes'], n_points=config['n_points'])
+        val_dataset = BuildingComponentDataset(root_dir=config['data_dir'], split='val',
+                                               classes=config['classes'], n_points=config['n_points'])
     else:
         raise ValueError(f'Invalid dataset name. Expected `shapenet` or '
                          f'`faust`. Got: `{dataset_name}`')

@@ -43,17 +43,19 @@ def main(eval_config):
     #
     # Dataset
     #
-    dataset_name = train_config['dataset'].lower()
-    if dataset_name == 'shapenet':
-        dataset = ShapeNetDataset(root_dir=eval_config['data_dir'],
-                                  classes=train_config['classes'], split='test')
-    elif dataset_name == 'annfasscomponent':
-        from datasets.annfasscomponent import AnnfassComponentDataset
-        dataset = AnnfassComponentDataset(root_dir=eval_config['data_dir'], split='val',
-                                          classes=train_config['classes'], n_points=train_config['n_points'])
-    else:
-        raise ValueError(f'Invalid dataset name. Expected `shapenet` or '
-                         f'`faust`. Got: `{dataset_name}`')
+    from datasets import load_dataset_class
+    dset_class = load_dataset_class(train_config['dataset'])
+    dataset = dset_class(eval_config['data_dir'], **train_config["test_dataset"])
+    # val_dataset = dset_class(root_dir=config['data_dir'], classes=config['classes'], split='valid')
+
+    log.debug("Selected {} classes. Loaded {} samples.".format(
+        'all' if not train_config["test_dataset"]['classes'] else ','.join(train_config["test_dataset"]['classes']),
+        len(dataset)))
+
+    points_dataloader = DataLoader(dataset, batch_size=train_config['batch_size'],
+                                   shuffle=train_config["test_dataset"]['shuffle'],
+                                   num_workers=train_config['num_workers'],
+                                   drop_last=True, pin_memory=True)
     classes_selected = ('all' if not train_config['classes']
                         else ','.join(train_config['classes']))
     log.debug(f'Selected {classes_selected} classes. Loaded {len(dataset)} '
