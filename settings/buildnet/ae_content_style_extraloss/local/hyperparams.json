@@ -1,6 +1,6 @@
 {
     "experiment_name": "experiment_ae_content_style_extraloss",
-    "results_root": "/media/graphicslab/BigData/zavou/ANNFASS_CODE/3daae-results/local",
+    "results_root": "/media/graphicslab/BigData/zavou/ANNFASS_CODE/3daae-results/buildnet/local",
     "clean_results_dir": false,
 
     "cuda": true,

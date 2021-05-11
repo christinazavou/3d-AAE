@@ -35,7 +35,7 @@ def main(eval_config):
         epoch = eval_config['epoch']
     log.debug(f'Starting from epoch: {epoch}')
 
-    encodings_path = join(train_results_path, 'encodings', f'{epoch:05}_z_e')
+    encodings_path = join(train_results_path, f'encodings{eval_config["encodings_suffix"]}', f'{epoch:05}_z_e')
     os.makedirs(encodings_path, exist_ok=True)
 
     device = cuda_setup(eval_config['cuda'])
@@ -47,22 +47,8 @@ def main(eval_config):
     # Dataset
     #
     from datasets import load_dataset_class
-    dset_class = load_dataset_class(train_config['dataset'])
-    dataset = dset_class(train_config['data_dir'], **train_config["test_dataset"])
-    # val_dataset = dset_class(root_dir=config['data_dir'], classes=config['classes'], split='valid')
-
-    log.debug("Selected {} classes. Loaded {} samples.".format(
-        'all' if not train_config["test_dataset"]['classes'] else ','.join(train_config["test_dataset"]['classes']),
-        len(dataset)))
-
-    points_dataloader = DataLoader(dataset, batch_size=train_config['batch_size'],
-                                   shuffle=train_config["test_dataset"]['shuffle'],
-                                   num_workers=train_config['num_workers'],
-                                   drop_last=True, pin_memory=True)
-    classes_selected = ('all' if not train_config['classes']
-                        else ','.join(train_config['classes']))
-    log.debug(f'Selected {classes_selected} classes. Loaded {len(dataset)} '
-              f'samples.')
+    dset_class = load_dataset_class(eval_config['dataset'])
+    test_dataset = dset_class(eval_config['data_dir'], **eval_config["test_dataset"])
 
     #
     # Models
@@ -77,23 +63,23 @@ def main(eval_config):
 
     E.eval()
 
-    num_samples = len(dataset)
-    data_loader = DataLoader(dataset, batch_size=eval_config['batch_size'],
-                             shuffle=False, num_workers=4,
+
+    # train_test_sets = torch.utils.data.ConcatDataset([train_dataset, test_dataset])
+    data_loader = DataLoader(test_dataset, batch_size=eval_config['batch_size'],
+                             shuffle=False, num_workers=eval_config['num_workers'],
                              drop_last=False, pin_memory=True)
 
     with torch.no_grad():
 
         buildings_groups = {}
-        for X_batch, X_batch_indices in data_loader:
+        for X_batch, X_batch_files in data_loader:
             X_batch = X_batch.to(device)
 
             z_e_batch = E(X_batch.transpose(1, 2))
             if isinstance(z_e_batch, tuple):
                 z_e_batch = z_e_batch[0]
 
-            for z_e, X_idx in zip(z_e_batch, X_batch_indices):
-                X_file = dataset.files[X_idx]
+            for z_e, X_file in zip(z_e_batch, X_batch_files):
                 filename = os.path.basename(X_file)
                 building = filename.split("_style_mesh_")[0]
                 if building in buildings_groups:

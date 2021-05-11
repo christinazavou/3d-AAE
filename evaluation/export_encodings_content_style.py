@@ -35,8 +35,10 @@ def main(eval_config):
         epoch = eval_config['epoch']
     log.debug(f'Starting from epoch: {epoch}')
 
-    encodings_path = join(train_results_path, 'encodings', f'{epoch:05}_z_e')
-    os.makedirs(encodings_path, exist_ok=True)
+    content_encodings_path = join(train_results_path, f'encodings{eval_config["encodings_suffix"]}', f'{epoch:05}_z_c_e')
+    style_encodings_path = join(train_results_path, f'encodings{eval_config["encodings_suffix"]}', f'{epoch:05}_z_s_e')
+    os.makedirs(content_encodings_path, exist_ok=True)
+    os.makedirs(style_encodings_path, exist_ok=True)
 
     device = cuda_setup(eval_config['cuda'])
     log.debug(f'Device variable: {device}')
@@ -46,16 +48,9 @@ def main(eval_config):
     #
     # Dataset
     #
-    dataset_name = train_config['dataset'].lower()
-    if dataset_name == 'contentstylecomponent':
-        from datasets.contentstylecomponent import ContentStyleComponentDataset
-        train_dataset = ContentStyleComponentDataset(root_dir=eval_config['data_dir'],
-                                                     split='train')
-        test_dataset = ContentStyleComponentDataset(root_dir=eval_config['data_dir'],
-                                                     split='test')
-    else:
-        raise ValueError(f'Invalid dataset name. Expected `shapenet` or '
-                         f'`faust`. Got: `{dataset_name}`')
+    from datasets import load_dataset_class
+    dset_class = load_dataset_class(eval_config['dataset'])
+    test_dataset = dset_class(eval_config['data_dir'], **eval_config["test_dataset"])
 
     #
     # Models
@@ -73,37 +68,38 @@ def main(eval_config):
     CE.eval()
     SE.eval()
 
-    train_test_sets = torch.utils.data.ConcatDataset([train_dataset, test_dataset])
-    data_loader = DataLoader(train_test_sets, batch_size=eval_config['batch_size'],
-                             shuffle=False, num_workers=4,
+    # train_test_sets = torch.utils.data.ConcatDataset([train_dataset, test_dataset])
+    data_loader = DataLoader(test_dataset, batch_size=eval_config['batch_size'],
+                             shuffle=False, num_workers=eval_config['num_workers'],
                              drop_last=False, pin_memory=True)
 
     with torch.no_grad():
 
-        buildings_groups = {}
         building_components = {}
-        for XC_batch, XDC_batch, XS_batch, X_batch_files in data_loader:
+        for XS_batch, X_batch_files in data_loader:
+            XS_batch = XS_batch.to(device)
+            XC_batch = XS_batch[:, np.random.randint(0, XS_batch.size()[1], int(XS_batch.size()[1]/8)), :]
             XC_batch = XC_batch.to(device)
 
+            sz_e_batch = SE(XS_batch.transpose(1, 2))
             cz_e_batch = CE(XC_batch.transpose(1, 2))
+            if isinstance(sz_e_batch, tuple):
+                sz_e_batch = sz_e_batch[0]
             if isinstance(cz_e_batch, tuple):
                 cz_e_batch = cz_e_batch[0]
 
-            for z_e, CX_file in zip(cz_e_batch, X_batch_files[0]):
-                filename = os.path.basename(CX_file)
+            for z_s_e, z_c_e, SX_file in zip(sz_e_batch, cz_e_batch, X_batch_files):
+                filename = os.path.basename(SX_file)
                 building = filename.split("_style_mesh_")[0]
-                component = filename.split("_style_mesh_")[1].replace("_coarse.ply", "")
+                component = filename.split("_style_mesh_")[1].replace(".ply", "")
                 building_components.setdefault(building, [])
                 if component in building_components[building]:
                     continue
-                if building in buildings_groups:
-                    group = buildings_groups[building] + 1
-                else:
-                    group = 0
-                buildings_groups[building] = group
                 building_components[building].append(component)
-                os.makedirs(os.path.join(encodings_path, building), exist_ok=True)
-                np.save(join(encodings_path, building, f"group{group}_{component}.npy"), z_e.cpu().numpy())
+                os.makedirs(os.path.join(style_encodings_path, building), exist_ok=True)
+                np.save(join(style_encodings_path, building, f"{component}.npy"), z_s_e.cpu().numpy())
+                os.makedirs(os.path.join(content_encodings_path, building), exist_ok=True)
+                np.save(join(content_encodings_path, building, f"{component}.npy"), z_c_e.cpu().numpy())
 
 
 if __name__ == '__main__':

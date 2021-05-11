@@ -32,6 +32,9 @@ class BuildingComponentDataset(Dataset):
         self.last_cache_percent = 0
         self.n_points = n_points
 
+        self.init()
+
+    def init(self):
         self.fpath = os.path.join(self.root_dir, self.split+".txt")
         df = pd.read_csv(self.fpath, sep=';', header=None, names=['file', 'building', 'component'])
         self.files = list(df['file'].values)
@@ -70,7 +73,7 @@ class BuildingComponentDataset(Dataset):
         if len(xyz) > self.n_points:
             xyz = xyz[np.random.randint(xyz.shape[0], size=self.n_points), :]
 
-        return xyz, idx
+        return xyz, ply_file
 
 
 class AnnfassComponentDataset(BuildingComponentDataset):
@@ -89,3 +92,19 @@ class AnnfassComponentDataset(BuildingComponentDataset):
 class BuildnetComponentDataset(BuildingComponentDataset):
     STYLES = [
     ]
+
+
+class BuildingComponentRawDataset(BuildingComponentDataset):
+    STYLES = []
+
+    def init(self):
+        self.fpath = self.root_dir
+        self.files = []
+        for root, dirs, files in os.walk(self.fpath):
+            for file in files:
+                if file.endswith(".ply"):
+                    self.files.append(os.path.join(root, file))
+        assert len(self.files) > 0, "No file loaded"
+        logging.info(
+            f"Loading the subset {self.split} from {self.fpath} with {len(self.files)} files"
+        )

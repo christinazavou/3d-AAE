@@ -1,6 +1,6 @@
 {
     "experiment_name": "experiment_ae_content_style_extraloss",
-    "results_root": "/mnt/nfs/work1/kalo/maverkiou/zavou/3daae-results",
+    "results_root": "/mnt/nfs/work1/kalo/maverkiou/zavou/3daae-results/buildnet",
     "clean_results_dir": false,
 
     "cuda": true,

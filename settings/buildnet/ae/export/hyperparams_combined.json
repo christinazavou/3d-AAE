@@ -1,6 +1,6 @@
 {
     "experiment_name": "experiment_ae",
-    "results_root": "/mnt/nfs/work1/kalo/maverkiou/zavou/3daae-results/buildnet",
+    "results_root": "/media/graphicslab/BigData/zavou/ANNFASS_CODE/3daae-results/buildnet/gypsum",
     "clean_results_dir": false,
 
     "cuda": true,
@@ -11,19 +11,21 @@
     "metrics": [
     ],
 
-    "dataset": "BuildnetComponentDataset",
-    "data_dir": "/mnt/nfs/work1/kalo/maverkiou/zavou/data/logs/buildnet_content_style_splits/style",
-    "train_dataset": {
+    "encodings_suffix": "_combined",
+
+    "dataset": "BuildingComponentRawDataset",
+    "data_dir": "/media/graphicslab/BigData/zavou/ANNFASS_DATA/Combined_Buildings/samplePoints/stylePly_cut10.0K_pgc_style4096",
+    "test_dataset": {
         "classes": [],
         "shuffle": true,
         "transforms": ["rotate"],
         "n_points": 2048,
-        "split": "train"
+        "split": "test"
     },
 
     "num_workers": 0,
     "max_epochs": 2000,
-    "batch_size": 8,
+    "batch_size": 4,
     "gp_lambda": 10,
     "reconstruction_coef": 0.05,
     "distribution": "bernoulli",
@@ -36,8 +38,8 @@
     "normal_std": 0.2,
 
     "seed": 2018,
-    "save_frequency": 250,
-    "stat_frequency": 25,
+    "save_frequency": 1,
+    "stat_frequency": 1,
     "epsilon": 0.001,
 
     "arch": "autoencoder",
