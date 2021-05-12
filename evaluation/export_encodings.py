@@ -71,7 +71,6 @@ def main(eval_config):
 
     with torch.no_grad():
 
-        buildings_groups = {}
         for X_batch, X_batch_files in data_loader:
             X_batch = X_batch.to(device)
 
@@ -82,14 +81,9 @@ def main(eval_config):
             for z_e, X_file in zip(z_e_batch, X_batch_files):
                 filename = os.path.basename(X_file)
                 building = filename.split("_style_mesh_")[0]
-                if building in buildings_groups:
-                    group = buildings_groups[building] + 1
-                else:
-                    group = 0
-                buildings_groups[building] = group
-                component = filename.split("_style_mesh_")[1].replace("_detail.ply", "")
+                component = filename.split("_style_mesh_")[1].replace("_detail", "").replace(".ply", "")
                 os.makedirs(os.path.join(encodings_path, building), exist_ok=True)
-                np.save(join(encodings_path, building, f"group{group}_{component}.npy"), z_e.cpu().numpy())
+                np.save(join(encodings_path, building, f"{component}.npy"), z_e.cpu().numpy())
 
 
 if __name__ == '__main__':

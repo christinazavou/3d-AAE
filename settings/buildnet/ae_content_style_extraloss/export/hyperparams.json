@@ -11,6 +11,8 @@
     "metrics": [
     ],
 
+    "encodings_suffix": "_annfass_may",
+
     "dataset": "BuildingComponentRawDataset",
     "data_dir": "/media/graphicslab/BigData/zavou/ANNFASS_DATA/ANNFASS_Buildings_may/samplePoints/stylePly_cut10.0K_pgc_style4096",
     "test_dataset": {
