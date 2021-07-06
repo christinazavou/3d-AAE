@@ -1,3 +1,4 @@
+PARTITION ?= titanx-long
 
 train-ae-content-style:
 	export MAIN_FILE=train_autoencoder_content_style.py \
@@ -19,7 +20,7 @@ train-ae-annfass:
 train-ae-buildnet:
 	export MAIN_FILE=train_autoencoder.py \
 		&& export CONFIG_FILE=buildnet/ae/gypsum/hyperparams.json \
-		&& sbatch train.sh
+		&& sbatch --job-name=3dae_bc --partition=$(PARTITION) train.sh
 
 train-ae-content-style-extraloss-buildnet:
 	export MAIN_FILE=train_autoencoder_content_style_extraloss.py \

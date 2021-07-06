@@ -4,7 +4,6 @@
     "clean_results_dir": false,
 
     "cuda": true,
-    "gpu": 0,
 
     "reconstruction_loss": "chamfer",
 
@@ -12,7 +11,7 @@
     ],
 
     "dataset": "BuildnetComponentDataset",
-    "data_dir": "/mnt/nfs/work1/kalo/maverkiou/zavou/data/logs/buildnet_content_style_splits/style",
+    "data_dir": "/mnt/nfs/work1/kalo/maverkiou/zavou/3d-aae-splits/buildnet_splits_content_style/style",
     "train_dataset": {
         "classes": [],
         "shuffle": true,

@@ -4,7 +4,6 @@
     "clean_results_dir": false,
 
     "cuda": true,
-    "gpu": 0,
 
     "reconstruction_loss": "chamfer",
 
@@ -12,13 +11,13 @@
     ],
 
     "dataset": "BuildnetComponentDataset",
-    "data_dir": "/media/graphicslab/BigData/zavou/ANNFASS_CODE/style_detection/logs/buildnet_content_style_splits/style",
+    "data_dir": "/media/graphicslab/BigData/zavou/ANNFASS_CODE/style_detection/logs/buildnet_splits_content_style/style",
     "train_dataset": {
         "classes": [],
         "shuffle": true,
         "transforms": ["rotate"],
         "n_points": 2048,
-        "split": "val"
+        "split": "train"
     },
 
     "num_workers": 0,

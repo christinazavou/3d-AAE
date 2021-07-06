@@ -76,6 +76,7 @@ def main(config):
                                    shuffle=config["train_dataset"]['shuffle'],
                                    num_workers=config['num_workers'],
                                    drop_last=True, pin_memory=True)
+    len_batches = len(points_dataloader)
 
     #
     # Models
@@ -143,7 +144,7 @@ def main(config):
             EG_optim.step()
 
             if epoch % config['stat_frequency'] == 0:
-                log.debug(f'[{epoch}: ({i})] '
+                log.debug(f'[{epoch}: ({i}/{len_batches})] '
                       f'Loss: {loss.item():.4f} '
                       f'Time: {datetime.now() - start_epoch_time}')
                 writer.add_scalar('loss', loss.item(), global_step)
