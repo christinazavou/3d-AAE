@@ -49,6 +49,8 @@ def main(eval_config):
     from datasets import load_dataset_class
     dset_class = load_dataset_class(eval_config['dataset'])
     test_dataset = dset_class(eval_config['data_dir'], **eval_config["test_dataset"])
+    if "train_dataset" in eval_config:
+        train_dataset = dset_class(eval_config['data_dir'], **eval_config["train_dataset"])
 
     #
     # Models
@@ -63,9 +65,12 @@ def main(eval_config):
 
     E.eval()
 
+    if "train_dataset" in eval_config:
+        train_test_sets = torch.utils.data.ConcatDataset([train_dataset, test_dataset])
+    else:
+        train_test_sets = test_dataset
 
-    # train_test_sets = torch.utils.data.ConcatDataset([train_dataset, test_dataset])
-    data_loader = DataLoader(test_dataset, batch_size=eval_config['batch_size'],
+    data_loader = DataLoader(train_test_sets, batch_size=eval_config['batch_size'],
                              shuffle=False, num_workers=eval_config['num_workers'],
                              drop_last=False, pin_memory=True)
 

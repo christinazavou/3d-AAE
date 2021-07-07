@@ -27,3 +27,8 @@ train-ae-content-style-extraloss-buildnet:
 		&& export CONFIG_FILE=buildnet/ae_content_style_extraloss/gypsum/hyperparams.json \
 		&& sbatch train.sh
 
+export-ae-on-annfass:
+	cd evaluation \
+ 		&& /home/graphicslab/miniconda3/envs/py3-mink/bin/python export_encodings.py \
+			--config ../settings/buildnet/ae/export/hyperparams.json \
+
