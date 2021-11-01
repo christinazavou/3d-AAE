@@ -48,9 +48,9 @@ train-aae-buildnet0:
 	export MAIN_FILE=train_aae.py \
 		&& export CONFIG=buildnet/aae/turing/hyperparams0.json \
 		&& GPU=0 \
-		&& sbatch --job-name=3daaeNa -w gpu-0-1 --mem-per-cpu=90000 train_turing.sh
+		&& sbatch --job-name=3daaeNa1 -w gpu-0-1 --mem-per-cpu=90000 train_turing.sh
 train-aae-buildnet6:
 	export MAIN_FILE=train_aae.py \
 		&& export CONFIG=buildnet/aae/turing/hyperparams6.json \
 		&& GPU=0 \
-		&& sbatch --job-name=3daaeNa -w gpu-0-1 --mem-per-cpu=90000 --cpus-per-task=6 train_turing.sh
+		&& sbatch --job-name=3daaeNa6 -w gpu-0-1 --mem-per-cpu=90000 --cpus-per-task=6 train_turing.sh
