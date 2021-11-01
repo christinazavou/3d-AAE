@@ -39,18 +39,13 @@ export-ae-on-buildnettest:
  		&& /home/graphicslab/miniconda3/envs/py3-mink/bin/python export_encodings.py \
 			--config ../settings/buildnet/ae/export/hyperparams_buildnet.json
 
+SBATCH_ARGS ?= "--job-name=3daaeNa -w gpu-0-1 --mem-per-cpu=90000"
+GPU ?= 0
+CONFIG ?= buildnet/aae/turing/hyperparams.json
 train-aae-buildnet:
 	export MAIN_FILE=train_aae.py \
-		&& export CONFIG=buildnet/aae/turing/hyperparams.json \
-		&& GPU=0 \
-		&& sbatch --job-name=3daaeNa -w gpu-0-1 --mem-per-cpu=90000 train_turing.sh
-train-aae-buildnet1:
-	export MAIN_FILE=train_aae.py \
-		&& export CONFIG=buildnet/aae/turing/hyperparams1.json \
-		&& GPU=0 \
-		&& sbatch --job-name=3daaeNa1 -w gpu-0-1 --mem-per-cpu=90000 train_turing.sh
-train-aae-buildnet6:
-	export MAIN_FILE=train_aae.py \
-		&& export CONFIG=buildnet/aae/turing/hyperparams6.json \
-		&& GPU=0 \
-		&& sbatch --job-name=3daaeNa6 -w gpu-0-1 --mem-per-cpu=90000 --cpus-per-task=6 train_turing.sh
+		&& export CONFIG=$(CONFIG) \
+		&& GPU=$(GPU) \
+		&& sbatch $(SBATCH_ARGS) train_turing.sh
+#make train-aae-buildnet GPU=3 SBATCH_ARGS=--job-name="3daae1 -w gpu-0-1 --mem-per-cpu=90000" CONFIG=buildnet/aae/turing/hyperparams.json
+#make train-aae-buildnet GPU=0 SBATCH_ARGS=--job-name="3daae6 -w gpu-0-1 --mem-per-cpu=90000" CONFIG=buildnet/aae/turing/hyperparams.json
