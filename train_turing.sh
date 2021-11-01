@@ -15,5 +15,5 @@ MAIN_FILE=${MAIN_FILE:-train_aae}
 
 export CUDA_VISIBLE_DEVICES=${GPU}
 
-echo "start ${PY_EXE} ${SOURCE_DIR}/experiments/${MAIN_FILE}.py --config ${CONFIG} --gpu ${GPU}"
-${PY_EXE} ${SOURCE_DIR}/experiments/${MAIN_FILE}.py --config ${CONFIG} --gpu ${GPU}
+echo "start ${PY_EXE} ${SOURCE_DIR}/experiments/${MAIN_FILE} --config ${CONFIG} --gpu ${GPU}"
+${PY_EXE} ${SOURCE_DIR}/experiments/${MAIN_FILE} --config ${CONFIG} --gpu ${GPU}
