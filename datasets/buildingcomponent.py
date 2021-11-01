@@ -32,6 +32,9 @@ class BuildingComponentDataset(Dataset):
         self.last_cache_percent = 0
         self.n_points = n_points
 
+        for key, value in kwargs.items():
+            self.__dict__[key] = value
+
         self.init()
 
     def init(self):
@@ -92,6 +95,26 @@ class AnnfassComponentDataset(BuildingComponentDataset):
 class BuildnetComponentDataset(BuildingComponentDataset):
     STYLES = [
     ]
+
+
+class BuildingComponentDataset2(BuildingComponentDataset):
+
+    def __init__(self, transform=None, n_points=2048, **kwargs):
+        super(BuildingComponentDataset2, self).__init__("", [], transform, "", n_points, **kwargs)
+        assert 'data_root' in kwargs
+        assert 'txt_file' in kwargs
+
+    def init(self):
+        with open(self.txt_file, "r") as fin:
+            files = fin.readlines()
+            files = [f.rstrip() for f in files]
+            files = [os.path.join(self.data_root, f) for f in files if os.path.exists(os.path.join(self.data_root, f))]
+
+        self.files = files
+        assert len(self.files) > 0, "No file loaded"
+        logging.info(
+            f"Loading the subset {self.split} from {self.txt_file} with {len(self.files)} files"
+        )
 
 
 class BuildingComponentRawDataset(BuildingComponentDataset):

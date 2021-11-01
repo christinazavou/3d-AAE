@@ -70,21 +70,25 @@ def main(config):
                                                  classes=config['classes'], n_points=config['n_points'])
         val_dataset = BuildingComponentDataset(root_dir=config['data_dir'], split='val',
                                                classes=config['classes'], n_points=config['n_points'])
+    elif dataset_name == 'buildingcomponentdataset2':
+        from datasets.buildingcomponent import BuildingComponentDataset2
+        train_dataset = BuildingComponentDataset2(txt_file=config['train_txt'],
+                                                  n_points=config['n_points'],
+                                                  data_root=config['train_data_root'])
+        val_dataset = BuildingComponentDataset2(txt_file=config['val_txt'],
+                                                n_points=config['n_points'],
+                                                data_root=config['val_data_root'])
     else:
-        raise ValueError(f'Invalid dataset name. Expected `shapenet` or '
-                         f'`faust`. Got: `{dataset_name}`')
-    log.debug("Selected {} classes. Loaded {} samples.".format(
-        'all' if not config['classes'] else ','.join(config['classes']),
-        len(train_dataset)))
+        raise ValueError(f'Invalid dataset name. Got: `{dataset_name}`')
 
     points_train_dataloader = DataLoader(train_dataset, batch_size=config['batch_size'],
-                                   shuffle=config['shuffle'],
-                                   num_workers=config['num_workers'],
-                                   drop_last=True, pin_memory=True)
+                                         shuffle=True,
+                                         num_workers=config['num_workers'],
+                                         drop_last=True, pin_memory=True)
     points_val_dataloader = DataLoader(val_dataset, batch_size=config['batch_size'],
-                                   shuffle=False,
-                                   num_workers=config['num_workers'],
-                                   drop_last=True, pin_memory=True)
+                                       shuffle=False,
+                                       num_workers=config['num_workers'],
+                                       drop_last=True, pin_memory=True)
 
     def get_lr(optimizer):
         for param_group in optimizer.param_groups:
@@ -125,12 +129,10 @@ def main(config):
     # Optimizers
     #
     EG_optim = getattr(optim, config['optimizer']['EG']['type'])
-    EG_optim = EG_optim(chain(E.parameters(), G.parameters()),
-                        **config['optimizer']['EG']['hyperparams'])
+    EG_optim = EG_optim(chain(E.parameters(), G.parameters()), **config['optimizer']['EG']['hyperparams'])
 
     D_optim = getattr(optim, config['optimizer']['D']['type'])
-    D_optim = D_optim(D.parameters(),
-                      **config['optimizer']['D']['hyperparams'])
+    D_optim = D_optim(D.parameters(), **config['optimizer']['D']['hyperparams'])
 
     if starting_epoch > 1:
         G.load_state_dict(torch.load(
