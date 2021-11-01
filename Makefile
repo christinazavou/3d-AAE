@@ -39,3 +39,8 @@ export-ae-on-buildnettest:
  		&& /home/graphicslab/miniconda3/envs/py3-mink/bin/python export_encodings.py \
 			--config ../settings/buildnet/ae/export/hyperparams_buildnet.json
 
+train-aae-buildnet:
+	export MAIN_FILE=train_aae.py \
+		&& export CONFIG=buildnet/aae/turing/hyperparams.json \
+		&& GPU=0 \
+		&& sbatch --job-name=3daaeNa -w gpu-0-1 --mem-per-cpu=90000 train_turing.sh
