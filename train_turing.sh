@@ -11,7 +11,7 @@ SOURCE_DIR=${SOURCE_DIR:-/home/czavou01/3d-AAE}
 PY_EXE=${PY_EXE:-/home/czavou01/miniconda3/envs/decorgan/bin/python}
 CONFIG=${CONFIG:-/home/czavou01/3d-AAE/settings/buildnet/aae/turing/hyperparams.json}
 GPU=${GPU:-0}
-MAIN_FILE=${MAIN_FILE:-train_aae}
+MAIN_FILE=${MAIN_FILE:-train_aae.py}
 
 export CUDA_VISIBLE_DEVICES=${GPU}
 
