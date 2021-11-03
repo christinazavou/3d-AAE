@@ -11,6 +11,7 @@ class Generator(nn.Module):
         self.z_size = config['z_size']
         self.use_bias = config['model']['G']['use_bias']
         self.relu_slope = config['model']['G']['relu_slope']
+        self.num_output = config['num_features'] if 'num_features' in config else 3
         self.model = nn.Sequential(
             nn.Linear(in_features=self.z_size, out_features=64, bias=self.use_bias),
             nn.ReLU(inplace=True),
@@ -24,12 +25,12 @@ class Generator(nn.Module):
             nn.Linear(in_features=512, out_features=1024, bias=self.use_bias),
             nn.ReLU(inplace=True),
 
-            nn.Linear(in_features=1024, out_features=2048 * 3, bias=self.use_bias),
+            nn.Linear(in_features=1024, out_features=2048 * self.num_output, bias=self.use_bias),
         )
 
     def forward(self, input):
         output = self.model(input.squeeze())
-        output = output.view(-1, 3, 2048)
+        output = output.view(-1, self.num_output, 2048)
         return output
 
 
@@ -71,9 +72,10 @@ class Encoder(nn.Module):
         self.z_size = config['z_size']
         self.use_bias = config['model']['E']['use_bias']
         self.relu_slope = config['model']['E']['relu_slope']
+        self.num_input = config['num_features'] if 'num_features' in config else 3
 
         self.conv = nn.Sequential(
-            nn.Conv1d(in_channels=3, out_channels=64, kernel_size=1,
+            nn.Conv1d(in_channels=self.num_input, out_channels=64, kernel_size=1,
                       bias=self.use_bias),
             nn.ReLU(inplace=True),
 

@@ -78,6 +78,14 @@ def main(config):
         val_dataset = BuildingComponentDataset2(txt_file=config['val_txt'],
                                                 n_points=config['n_points'],
                                                 data_root=config['val_data_root'])
+    elif dataset_name == 'buildingcomponentdataset2withcolor':
+        from datasets.buildingcomponent import BuildingComponentDataset2WithColor
+        train_dataset = BuildingComponentDataset2WithColor(txt_file=config['train_txt'],
+                                                           n_points=config['n_points'],
+                                                           data_root=config['train_data_root'])
+        val_dataset = BuildingComponentDataset2WithColor(txt_file=config['val_txt'],
+                                                         n_points=config['n_points'],
+                                                         data_root=config['val_data_root'])
     else:
         raise ValueError(f'Invalid dataset name. Got: `{dataset_name}`')
 

@@ -117,6 +117,46 @@ class BuildingComponentDataset2(BuildingComponentDataset):
         )
 
 
+class BuildingComponentDataset2WithColor(BuildingComponentDataset2):
+
+    def __init__(self, transform=None, n_points=2048, **kwargs):
+        super(BuildingComponentDataset2WithColor, self).__init__(transform, n_points, **kwargs)
+
+    def __getitem__(self, idx):
+
+        ply_file = self.files[idx]
+        if idx in self.cache:
+            xyz, rgb = self.cache[idx]
+        else:
+            xyz, rgb = load_ply(ply_file, with_color=True)
+            # normalize color. The ply i know it's normalized.
+            if 1 < rgb.max() < 256 and 0 <= rgb.min():
+                rgb = rgb / 255.
+            self.cache[idx] = xyz, rgb
+            cache_percent = int((len(self.cache) / len(self)) * 100)
+            if cache_percent > 0 and cache_percent % 10 == 0 and cache_percent != self.last_cache_percent:
+                logging.info(
+                    f"Cached {self.phase}: {len(self.cache)} / {len(self)}: {cache_percent}%"
+                )
+                self.last_cache_percent = cache_percent
+
+        if len(xyz) < self.n_points:
+            logging.info(
+                f"Skipping {ply_file}: does not have sufficient sampling density: {len(xyz)}."
+            )
+            return None, None
+
+        if self.transform:
+            xyz = self.transform(xyz)
+
+        if len(xyz) > self.n_points:
+            xyz = xyz[np.random.randint(xyz.shape[0], size=self.n_points), :]
+            rgb = rgb[np.random.randint(rgb.shape[0], size=self.n_points), :]
+
+        features = np.hstack([xyz, rgb])
+        return features, ply_file
+
+
 class BuildingComponentRawDataset(BuildingComponentDataset):
     STYLES = []
 

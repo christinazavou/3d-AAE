@@ -47,5 +47,5 @@ train-aae-buildnet:
 		&& export CONFIG=$(CONFIG) \
 		&& GPU=$(GPU) \
 		&& sbatch $(SBATCH_ARGS) train_turing.sh
-#make train-aae-buildnet GPU=3 SBATCH_ARGS=--job-name="3daae1 -w gpu-0-1 --mem-per-cpu=90000" CONFIG=buildnet/aae/turing/hyperparams.json
-#make train-aae-buildnet GPU=0 SBATCH_ARGS=--job-name="3daae6 -w gpu-0-1 --mem-per-cpu=90000" CONFIG=buildnet/aae/turing/hyperparams.json
+#make train-aae-buildnet GPU=3 SBATCH_ARGS="--job-name=3daae1 -w gpu-0-1 --mem-per-cpu=90000" CONFIG=buildnet/aae/turing/hyperparams1.json
+#make train-aae-buildnet GPU=0 SBATCH_ARGS="--job-name=3daae6 -w gpu-0-1 --mem-per-cpu=90000 --cpus-per-task=6" CONFIG=buildnet/aae/turing/hyperparams6.json
