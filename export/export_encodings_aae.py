@@ -34,7 +34,7 @@ def main(eval_config):
         epoch = eval_config['epoch']
     log.debug(f'Starting from epoch: {epoch}')
 
-    encodings_path = join(train_results_path, f'encodings{eval_config["encodings_suffix"]}', 'z_dim_all')
+    encodings_path = join(train_results_path, f'encodings{eval_config["encodings_suffix"]}', 'z_dim_all/as_is')
     os.makedirs(encodings_path, exist_ok=True)
 
     device = cuda_setup(eval_config['cuda'])
