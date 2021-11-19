@@ -11,10 +11,10 @@
     "metrics": [
     ],
 
-    "encodings_suffix": "_buildnet_groups_june17",
+    "encodings_suffix": "",
 
     "dataset": "BuildnetComponentDataset",
-    "data_dir": "/media/graphicslab/BigData/zavou/ANNFASS_CODE/style_detection/logs/buildnet_splits_content_style/style",
+    "data_dir": "/media/graphicslab/BigData/zavou/ANNFASS_CODE/style_detection/logs/annfass_splits_content_style/style",
     "test_dataset": {
         "classes": [],
         "shuffle": true,
